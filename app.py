@@ -225,16 +225,6 @@ def api_map_delete_feature(feature_id):
     return jsonify({'success': True})
 
 
-@app.route('/api/schemes', methods=['GET'])
-def api_schemes():
-    schemes_data = [
-        {'id': 's1', 'name': 'PM Awas Yojana (PMAY)', 'description': 'Financial assistance to build pucca houses for rural families.', 'benefit': 'Up to ₹1.2 lakh assistance', 'eligibility': 'BPL families without pucca house', 'category': 'Housing', 'department': 'Rural Development', 'myscheme_url': 'https://pmaymis.gov.in'},
-        {'id': 's2', 'name': 'PM Kisan Samman Nidhi', 'description': 'Direct income support of ₹6,000/year to farmer families.', 'benefit': '₹6,000/year in 3 installments', 'eligibility': 'Farmers with < 2 hectares land', 'category': 'Agriculture', 'department': 'Agriculture & Farmers Welfare', 'myscheme_url': 'https://pmkisan.gov.in'},
-        {'id': 's3', 'name': 'Jal Jeevan Mission', 'description': 'Tap water connection to every rural household.', 'benefit': 'Free tap water connection', 'eligibility': 'Rural households without tap', 'category': 'Infrastructure', 'department': 'Jal Shakti', 'myscheme_url': 'https://jaljeevanmission.gov.in'},
-        {'id': 's4', 'name': 'PM Ujjwala Yojana', 'description': 'Free LPG connection to BPL families.', 'benefit': 'Free cylinder + connection', 'eligibility': 'BPL women without LPG', 'category': 'Social Welfare', 'department': 'Petroleum and Natural Gas', 'myscheme_url': 'https://pmuy.gov.in'},
-        {'id': 's5', 'name': 'MGNREGA', 'description': '100 days guaranteed employment per year to rural households.', 'benefit': '100 days of work at minimum wage', 'eligibility': 'Any rural adult', 'category': 'Employment', 'department': 'Rural Development', 'myscheme_url': 'https://nrega.nic.in'}
-    ]
-    return jsonify({'schemes': schemes_data}), 200
 
 # ── Health Check (for ALB & ECS Container Health Checks) ───────────────────────
 
