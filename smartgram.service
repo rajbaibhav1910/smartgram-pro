@@ -1,0 +1,21 @@
+[Unit]
+Description=SmartGram Pro Flask App (Gunicorn)
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/smartgram
+Environment="PATH=/home/ubuntu/smartgram/venv/bin"
+ExecStart=/home/ubuntu/smartgram/venv/bin/gunicorn \
+          --bind 0.0.0.0:5000 \
+          --workers 2 \
+          --timeout 60 \
+          --access-logfile /var/log/smartgram-access.log \
+          --error-logfile /var/log/smartgram-error.log \
+          app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

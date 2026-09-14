@@ -1,0 +1,330 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SmartGram Pro - 03 Data Storage: DynamoDB Tables (On-Demand with GSIs) and Private S3 Buckets'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'prod'
+    Description: 'Deployment environment identifier'
+
+Resources:
+  # ============================================================================
+  # DynamoDB Tables (On-Demand Serverless Capacity + Encryption + Recovery)
+  # ============================================================================
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'SmartGramUsers'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: username
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UsernameIndex
+          KeySchema:
+            - AttributeName: username
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: PanchayatIndex
+          KeySchema:
+            - AttributeName: panchayatId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  ComplaintsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'SmartGramComplaints'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: complaint_id
+          AttributeType: S
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: submitted_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: complaint_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: submitted_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: submitted_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      GlobalSecondaryIndexes:
+        - IndexName: PanchayatIndex
+          KeySchema:
+            - AttributeName: panchayatId
+              KeyType: HASH
+            - AttributeName: submitted_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  NoticesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'SmartGramNotices'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: notice_id
+          AttributeType: S
+        - AttributeName: panchayatId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: notice_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: PanchayatIndex
+          KeySchema:
+            - AttributeName: panchayatId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  MapAssetsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'SmartGramMapAssets'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: feature_id
+          AttributeType: S
+        - AttributeName: panchayatId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: feature_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: PanchayatIndex
+          KeySchema:
+            - AttributeName: panchayatId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  PanchayatsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'SmartGramPanchayats'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: panchayatId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: panchayatId
+          KeyType: HASH
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  AuditLogTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'SmartGramAuditLog'
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      AttributeDefinitions:
+        - AttributeName: audit_id
+          AttributeType: S
+        - AttributeName: panchayatId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: audit_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: PanchayatIndex
+          KeySchema:
+            - AttributeName: panchayatId
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  # ============================================================================
+  # S3 Buckets (Private with Default Server-Side Encryption)
+  # ============================================================================
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'smartgram-frontend-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Purpose
+          Value: React-Static-SPA
+
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'smartgram-media-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD']
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Purpose
+          Value: Complaint-Evidence-Uploads
+
+Outputs:
+  UsersTableName:
+    Description: 'Users DynamoDB Table'
+    Value: !Ref UsersTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UsersTableName'
+
+  ComplaintsTableName:
+    Description: 'Complaints DynamoDB Table'
+    Value: !Ref ComplaintsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-ComplaintsTableName'
+
+  NoticesTableName:
+    Description: 'Notices DynamoDB Table'
+    Value: !Ref NoticesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-NoticesTableName'
+
+  MapAssetsTableName:
+    Description: 'Map Assets (Panchayat GIS) DynamoDB Table'
+    Value: !Ref MapAssetsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-MapAssetsTableName'
+
+  PanchayatsTableName:
+    Description: 'Panchayats (Tenants) DynamoDB Table'
+    Value: !Ref PanchayatsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-PanchayatsTableName'
+
+  AuditLogTableName:
+    Description: 'Audit Log DynamoDB Table'
+    Value: !Ref AuditLogTable
+    Export:
+      Name: !Sub '${AWS::StackName}-AuditLogTableName'
+
+  FrontendBucketName:
+    Description: 'Frontend React SPA S3 Bucket Name'
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendBucketName'
+
+  FrontendBucketArn:
+    Description: 'Frontend React SPA S3 Bucket ARN'
+    Value: !GetAtt FrontendBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendBucketArn'
+
+  MediaBucketName:
+    Description: 'Media Uploads S3 Bucket Name'
+    Value: !Ref MediaBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-MediaBucketName'
+
+  MediaBucketArn:
+    Description: 'Media Uploads S3 Bucket ARN'
+    Value: !GetAtt MediaBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-MediaBucketArn'

@@ -1,0 +1,289 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles matching existing design system */
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply text-sm leading-relaxed;
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: calc(60px + 16px);
+  }
+
+  body {
+    @apply font-sans text-text bg-canvas antialiased;
+    transition: background-color 200ms cubic-bezier(0.2, 0.8, 0.2, 1), 
+                color 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* Dark mode base styles */
+  .dark body {
+    @apply bg-canvas-dark text-text-dark;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, dl, dd, figure, blockquote {
+    @apply m-0;
+  }
+
+  ul, ol {
+    @apply m-0 p-0 list-none;
+  }
+
+  img, svg, video {
+    @apply block max-w-full;
+  }
+
+  img {
+    @apply h-auto;
+  }
+
+  a {
+    @apply text-primary transition-colors duration-[130ms] ease-in-out;
+  }
+
+  a:hover {
+    @apply text-primary-hover;
+  }
+
+  button {
+    @apply text-inherit;
+    font: inherit;
+  }
+
+  input, select, textarea {
+    font: inherit;
+  }
+
+  code, kbd, pre {
+    @apply font-mono text-[0.85em];
+  }
+
+  ::selection {
+    background: rgba(22, 101, 52, 0.18);
+  }
+
+  .dark ::selection {
+    background: rgba(88, 190, 135, 0.30);
+  }
+
+  /* Focus visibility */
+  :focus {
+    @apply outline-none;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-primary outline-offset-2 rounded-sm;
+  }
+
+  /* Typography scale */
+  .display {
+    @apply text-[clamp(2.1rem,4.6vw,3.25rem)] leading-[1.08] font-bold tracking-[-0.028em] text-ink;
+  }
+
+  .dark .display {
+    @apply text-ink-dark;
+  }
+
+  h1, .h1 {
+    @apply text-[clamp(1.5rem,2.6vw,1.875rem)] leading-[1.2] font-semibold tracking-[-0.02em] text-ink;
+  }
+
+  .dark h1, .dark .h1 {
+    @apply text-ink-dark;
+  }
+
+  h2, .h2 {
+    @apply text-[1.375rem] leading-[1.25] font-semibold tracking-[-0.015em] text-ink;
+  }
+
+  .dark h2, .dark .h2 {
+    @apply text-ink-dark;
+  }
+
+  h3, .h3 {
+    @apply text-[1.0625rem] leading-[1.35] font-semibold tracking-[-0.01em] text-ink;
+  }
+
+  .dark h3, .dark .h3 {
+    @apply text-ink-dark;
+  }
+
+  h4, .h4 {
+    @apply text-[0.9375rem] leading-[1.4] font-semibold text-ink;
+  }
+
+  .dark h4, .dark .h4 {
+    @apply text-ink-dark;
+  }
+
+  .text-muted {
+    @apply text-text-muted;
+  }
+
+  .dark .text-muted {
+    @apply text-text-muted-dark;
+  }
+
+  .text-faint {
+    @apply text-text-faint;
+  }
+
+  .dark .text-faint {
+    @apply text-text-faint-dark;
+  }
+
+  .small {
+    @apply text-[0.8125rem];
+  }
+
+  .caption {
+    @apply text-[0.75rem] text-text-faint;
+  }
+
+  .dark .caption {
+    @apply text-text-faint-dark;
+  }
+
+  .label {
+    @apply text-[0.8125rem] font-medium tracking-[0.01em] text-ink;
+  }
+
+  .dark .label {
+    @apply text-ink-dark;
+  }
+}
+
+@layer utilities {
+  /* Layout helpers */
+  .container-page {
+    @apply w-full max-w-[1200px] mx-auto px-[clamp(16px,4vw,32px)];
+  }
+
+  .stack-xs > * + * {
+    @apply mt-1;
+  }
+
+  .stack-sm > * + * {
+    @apply mt-2;
+  }
+
+  .stack > * + * {
+    @apply mt-3;
+  }
+
+  .stack-lg > * + * {
+    @apply mt-5;
+  }
+
+  .row-between {
+    @apply flex items-center justify-between gap-3 flex-wrap;
+  }
+
+  /* Accessibility helpers */
+  .visually-hidden {
+    @apply absolute w-1 h-1 m-0 p-0 overflow-hidden clip-rect-0 whitespace-nowrap border-0;
+  }
+
+  .skip-link {
+    @apply absolute top-[-48px] left-3 z-[200] px-3.5 py-2 bg-primary text-primary-on rounded-sm font-medium transition-all duration-[200ms] ease-in-out;
+  }
+
+  .skip-link:focus {
+    @apply top-2.5 text-primary-on;
+  }
+
+  /* Motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ── Print: professional notice printing ───────────────────────────────────
+   The layouts and notice detail page mark chrome with print:hidden;
+   these rules keep the printed document clean and readable. */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .notice-print-area {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .notice-print-area .bg-surface {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .notice-print-area h1 {
+    font-size: 20pt !important;
+  }
+
+  .notice-print-area p {
+    color: #000000 !important;
+    font-size: 12pt !important;
+    line-height: 1.6 !important;
+  }
+}
+
+/* ── Dark theme: component token overrides ─────────────────────────────────
+   Components are written with light-oriented utility classes; these scoped
+   overrides swap in the dark values from the same design tokens (must stay
+   after the Tailwind layers so they win the cascade). */
+.dark .bg-surface { background-color: #151b17; }
+.dark .bg-surface-subtle { background-color: #1a211d; }
+.dark .border-border { border-color: #27302a; }
+.dark .border-border-strong { border-color: #39453e; }
+.dark .text-ink { color: #e9edea; }
+.dark .text-text { color: #c0c8c2; }
+.dark .text-text-muted { color: #93a098; }
+.dark .text-text-faint { color: #6d7973; }
+.dark .bg-primary-subtle { background-color: #132a1e; }
+.dark .border-primary-subtle-border { border-color: #1f4a34; }
+.dark .text-primary-text { color: #8fd8b0; }
+.dark .text-primary { color: #21835b; }
+.dark .bg-saffron-subtle { background-color: #2b2115; }
+.dark .bg-ink { background-color: #e9edea; }
+.dark .text-canvas { color: #0e1310; }
+.dark a { color: #21835b; }
+.dark a:hover { color: #1c7451; }
+/* Utilities must win over the base link color above */
+.dark a.text-primary-on, .dark a .text-primary-on { color: #f2fbf5; }
+.dark .hover\:text-ink:hover { color: #e9edea; }
+.dark .hover\:text-primary-hover:hover { color: #1c7451; }
+.dark .hover\:bg-surface-subtle:hover { background-color: #1a211d; }
+.dark .hover\:border-border-strong:hover { border-color: #39453e; }
+.dark .hover\:bg-primary-hover:hover { background-color: #1c7451; }
+.dark .hover\:text-danger:hover { color: #f3a2a2; }
+.dark .placeholder\:text-text-faint::placeholder { color: #6d7973; }
+
+/* Status tokens */
+.dark .bg-status-pending-bg { background-color: #2a2113; }
+.dark .text-status-pending-text { color: #f5c26b; }
+.dark .border-status-pending-border { border-color: #4d3c17; }
+.dark .bg-status-progress-bg { background-color: #14213a; }
+.dark .text-status-progress-text { color: #96bdfb; }
+.dark .border-status-progress-border { border-color: #24406d; }
+.dark .bg-status-resolved-bg { background-color: #122819; }
+.dark .text-status-resolved-text { color: #7fdca4; }
+.dark .border-status-resolved-border { border-color: #1e4d31; }
+.dark .bg-status-rejected-bg { background-color: #2c1516; }
+.dark .text-status-rejected-text { color: #f3a2a2; }
+.dark .border-status-rejected-border { border-color: #54222a; }
+.dark .bg-danger-subtle { background-color: #2c1516; }
+.dark .text-danger { color: #f3a2a2; }

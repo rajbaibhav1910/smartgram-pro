@@ -1,0 +1,118 @@
+{
+  "_comment": "DEMO FIXTURE — sample panchayat for local development and preview ONLY (use /map?demo=1). These are NOT real locations. The production map is API-driven and starts empty.",
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "demo-boundary",
+      "feature_type": "boundary",
+      "geometry": { "type": "Polygon", "coordinates": [[ [79.480, 28.935], [79.540, 28.935], [79.540, 28.975], [79.480, 28.975], [79.480, 28.935] ]] },
+      "properties": { "name": "Demo Gram Panchayat" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-ward-1",
+      "feature_type": "ward",
+      "geometry": { "type": "Polygon", "coordinates": [[ [79.480, 28.955], [79.510, 28.955], [79.510, 28.975], [79.480, 28.975], [79.480, 28.955] ]] },
+      "properties": { "name": "Ward 1", "ward": "1" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-ward-2",
+      "feature_type": "ward",
+      "geometry": { "type": "Polygon", "coordinates": [[ [79.510, 28.955], [79.540, 28.955], [79.540, 28.975], [79.510, 28.975], [79.510, 28.955] ]] },
+      "properties": { "name": "Ward 2", "ward": "2" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-ward-3",
+      "feature_type": "ward",
+      "geometry": { "type": "Polygon", "coordinates": [[ [79.480, 28.935], [79.540, 28.935], [79.540, 28.955], [79.480, 28.955], [79.480, 28.935] ]] },
+      "properties": { "name": "Ward 3", "ward": "3" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-school",
+      "feature_type": "school",
+      "geometry": { "type": "Point", "coordinates": [79.498, 28.964] },
+      "properties": { "name": "Government Primary School", "ward": "1", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-hospital",
+      "feature_type": "hospital",
+      "geometry": { "type": "Point", "coordinates": [79.524, 28.962] },
+      "properties": { "name": "Community Health Centre", "ward": "2", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-anganwadi",
+      "feature_type": "anganwadi",
+      "geometry": { "type": "Point", "coordinates": [79.505, 28.944] },
+      "properties": { "name": "Anganwadi Centre", "ward": "3", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-water-tank",
+      "feature_type": "water_tank",
+      "geometry": { "type": "Point", "coordinates": [79.516, 28.948] },
+      "properties": { "name": "Main Village Water Tank", "ward": "3", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-hand-pump-1",
+      "feature_type": "hand_pump",
+      "geometry": { "type": "Point", "coordinates": [79.490, 28.960] },
+      "properties": { "name": "Hand Pump — Near Bus Stop", "ward": "1", "status": "needs_attention" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-hand-pump-2",
+      "feature_type": "hand_pump",
+      "geometry": { "type": "Point", "coordinates": [79.530, 28.941] },
+      "properties": { "name": "Hand Pump — Ward 3", "ward": "3", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-street-light-1",
+      "feature_type": "street_light",
+      "geometry": { "type": "Point", "coordinates": [79.494, 28.957] },
+      "properties": { "name": "Street Light SL-01", "ward": "1", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-office",
+      "feature_type": "government_office",
+      "geometry": { "type": "Point", "coordinates": [79.509, 28.958] },
+      "properties": { "name": "Gram Panchayat Office", "ward": "1", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-community-center",
+      "feature_type": "community_center",
+      "geometry": { "type": "Point", "coordinates": [79.513, 28.941] },
+      "properties": { "name": "Community Hall", "ward": "3", "status": "operational" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-road",
+      "feature_type": "road",
+      "geometry": { "type": "LineString", "coordinates": [ [79.484, 28.940], [79.502, 28.950], [79.518, 28.948], [79.534, 28.952] ] },
+      "properties": { "name": "Panchayat Main Road", "ward": "3" }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-project-1",
+      "feature_type": "project",
+      "geometry": { "type": "Point", "coordinates": [79.504, 28.951] },
+      "properties": { "name": "Road Improvement — Ward 1 to Ward 3", "ward": "3", "status": "in_progress", "progress": 74, "description": "Widening and re-laying of the panchayat main road." }
+    },
+    {
+      "type": "Feature",
+      "id": "demo-project-2",
+      "feature_type": "project",
+      "geometry": { "type": "Point", "coordinates": [79.528, 28.966] },
+      "properties": { "name": "Solar Street Lights — Ward 2", "ward": "2", "status": "planned", "progress": 0, "description": "Installation of 24 solar street lights in Ward 2." }
+    }
+  ]
+}

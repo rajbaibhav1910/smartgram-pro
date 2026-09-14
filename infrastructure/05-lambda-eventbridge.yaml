@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SmartGram Pro - 05 Automation: SNS Topic, Daily Pending Complaint Reminder Lambda, and EventBridge Schedule'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'prod'
+    Description: 'Deployment environment identifier'
+
+  LambdaExecutionRoleArn:
+    Type: String
+    Description: 'IAM Role ARN for the Lambda function'
+
+  AdminAlertEmail:
+    Type: String
+    Default: ''
+    Description: 'Optional administrator email to receive complaint alerts and daily digests'
+
+Conditions:
+  HasAdminEmail: !Not [!Equals [!Ref AdminAlertEmail, '']]
+
+Resources:
+  # ============================================================================
+  # SNS Topic for System & Complaint Alerts
+  # ============================================================================
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: 'SmartGramAlerts'
+      DisplayName: 'SmartGram Pro Governance Alerts'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  SnsEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAdminEmail
+    Properties:
+      TopicArn: !Ref SnsTopic
+      Protocol: email
+      Endpoint: !Ref AdminAlertEmail
+
+  # ============================================================================
+  # Lambda Function (Daily Pending Complaints Digest)
+  # ============================================================================
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'smartgram-${EnvironmentName}-pending-reminder'
+      Description: 'Daily scheduled function scanning for pending complaints and publishing SNS summary'
+      Runtime: python3.11
+      Handler: index.lambda_handler
+      Role: !Ref LambdaExecutionRoleArn
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          TABLE_NAME: SmartGramComplaints
+          SNS_TOPIC_ARN: !Ref SnsTopic
+      Code:
+        ZipFile: |
+          import boto3, os
+          from datetime import datetime
+
+          region = os.environ.get('AWS_REGION', 'ap-south-1')
+          dynamodb = boto3.resource('dynamodb', region_name=region)
+          sns = boto3.client('sns', region_name=region)
+
+          TABLE_NAME = os.environ.get('TABLE_NAME', 'SmartGramComplaints')
+          SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN', '')
+
+          def lambda_handler(event, context):
+              table = dynamodb.Table(TABLE_NAME)
+              pending = []
+              scan_kwargs = {'FilterExpression': boto3.dynamodb.conditions.Attr('status').eq('Pending')}
+              done = False
+              start_key = None
+              while not done:
+                  if start_key:
+                      scan_kwargs['ExclusiveStartKey'] = start_key
+                  response = table.scan(**scan_kwargs)
+                  pending.extend(response.get('Items', []))
+                  start_key = response.get('LastEvaluatedKey', None)
+                  done = start_key is None
+
+              count = len(pending)
+              today = datetime.now().strftime('%Y-%m-%d')
+              if count == 0:
+                  subject = f"SmartGram Pro: No Pending Complaints on {today}"
+                  body = f"Great news! All complaints have been addressed as of {today}."
+              else:
+                  lines = [
+                      f"SmartGram Pro – Daily Pending Complaints Report ({today})",
+                      f"Total Pending: {count}\n",
+                      "Complaint Details:"
+                  ]
+                  for c in pending[:50]:
+                      lines.append(f"  • [{c.get('complaint_id', 'N/A')}] {c.get('category', 'General')} | {c.get('village', 'Unknown')} | Filed: {str(c.get('submitted_at', ''))[:10]}")
+                  if count > 50:
+                      lines.append(f"\n... and {count - 50} more pending complaints.")
+                  lines.append("\nPlease login to the SmartGram Pro admin panel to take action.")
+                  body = '\n'.join(lines)
+                  subject = f"SmartGram Pro: {count} Complaint(s) Still Pending – Action Required"
+
+              if SNS_TOPIC_ARN:
+                  try:
+                      sns.publish(TopicArn=SNS_TOPIC_ARN, Subject=subject, Message=body)
+                      print(f"Sent reminder for {count} complaints")
+                  except Exception as e:
+                      print(f"Failed to publish: {e}")
+
+              return {'statusCode': 200, 'body': f'{count} pending complaints processed'}
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # ============================================================================
+  # EventBridge Scheduled Rule (Daily Cron at 03:00 UTC / 08:30 IST)
+  # ============================================================================
+  DailyScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub 'smartgram-${EnvironmentName}-daily-reminder-rule'
+      Description: 'Triggers SmartGram pending complaint reminder lambda daily'
+      ScheduleExpression: 'cron(0 3 * * ? *)'
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LambdaFunction.Arn
+          Id: 'PendingReminderLambdaTarget'
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: 'lambda:InvokeFunction'
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt DailyScheduleRule.Arn
+
+Outputs:
+  SnsTopicArn:
+    Description: 'SNS Topic ARN for alerts'
+    Value: !Ref SnsTopic
+    Export:
+      Name: !Sub '${AWS::StackName}-SnsTopicArn'
+
+  LambdaFunctionArn:
+    Description: 'Pending Complaints Reminder Lambda ARN'
+    Value: !GetAtt LambdaFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaFunctionArn'

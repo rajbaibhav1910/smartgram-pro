@@ -1,0 +1,111 @@
+import json, io, os
+
+os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend'))
+
+EN = {
+  "searchPlaceholderLong": "Search schemes by name, benefit, department, or eligibility…",
+  "subtitleLong": "Discover government programs, benefits, and services relevant to you.",
+  "clearSearch": "Clear search",
+  "popularCategories": "Browse by category",
+  "filters": "Filters",
+  "filterCategory": "Category",
+  "filterDepartment": "Department",
+  "allDepartments": "All departments",
+  "clearAll": "Clear all",
+  "resultCount": "Showing {{shown}} of {{total}} schemes",
+  "loading": "Loading schemes…",
+  "sortLabel": "Sort schemes",
+  "sortDefault": "Default order",
+  "sortAz": "Name (A–Z)",
+  "sortZa": "Name (Z–A)",
+  "removeFilter": "Remove filter {{filter}}",
+  "showResults": "Show {{count}} schemes",
+  "noMatchTitle": "No schemes found",
+  "noMatchDesc": "Try removing a filter or searching with a different term.",
+  "browseAll": "Browse all schemes",
+  "loadError": "We couldn't load government schemes right now.",
+  "atGlance": "At a glance",
+  "benefit": "What you receive",
+  "whoCanApply": "Who can apply?",
+  "whoCanApplyShort": "Who can apply:",
+  "department": "Department",
+  "aboutTitle": "About the scheme",
+  "howToApply": "How to apply",
+  "applyStep1Title": "Check that you qualify",
+  "applyStep1Desc": "read the eligibility carefully before you begin.",
+  "applyStep2Title": "Apply through the official portal",
+  "applyStep2Desc": "use the official link below. Your Gram Panchayat office can also help you apply.",
+  "applyNote": "SmartGram lists scheme information for awareness only. Your eligibility is confirmed by the administering department when you apply.",
+  "officialSource": "Official source",
+  "officialSourceDesc": "This scheme is administered by the ministry listed above. Always apply through the official portal.",
+  "visitPortal": "Visit Official Portal",
+  "visitPortalAria": "Visit the official portal for {{name}}",
+  "backToList": "Back to all schemes",
+  "share": "Share",
+  "shareText": "{{name}} — a government scheme on SmartGram",
+  "linkCopied": "Link copied to clipboard.",
+  "shareFailed": "Couldn't share right now.",
+  "notFoundTitle": "Scheme not found",
+  "notFoundDesc": "This scheme doesn't exist or may have been removed.",
+  "viewDetails": "View details",
+}
+
+HI = {
+  "searchPlaceholderLong": "नाम, लाभ, विभाग या पात्रता से योजनाएँ खोजें…",
+  "subtitleLong": "सरकारी कार्यक्रम, लाभ और सेवाएँ खोजें जो आपके लिए प्रासंगिक हैं।",
+  "clearSearch": "खोज साफ़ करें",
+  "popularCategories": "श्रेणी से ब्राउज़ करें",
+  "filters": "फ़िल्टर",
+  "filterCategory": "श्रेणी",
+  "filterDepartment": "विभाग",
+  "allDepartments": "सभी विभाग",
+  "clearAll": "सभी हटाएँ",
+  "resultCount": "{{total}} में से {{shown}} योजनाएँ दिखाई जा रही हैं",
+  "loading": "योजनाएँ लोड हो रही हैं…",
+  "sortLabel": "योजनाएँ क्रमबद्ध करें",
+  "sortDefault": "डिफ़ॉल्ट क्रम",
+  "sortAz": "नाम (A–Z)",
+  "sortZa": "नाम (Z–A)",
+  "removeFilter": "फ़िल्टर हटाएँ {{filter}}",
+  "showResults": "{{count}} योजनाएँ दिखाएँ",
+  "noMatchTitle": "कोई योजना नहीं मिली",
+  "noMatchDesc": "कोई फ़िल्टर हटाएँ या दूसरे शब्द से खोजें।",
+  "browseAll": "सभी योजनाएँ देखें",
+  "loadError": "सरकारी योजनाएँ अभी लोड नहीं हो सकीं।",
+  "atGlance": "एक नज़र में",
+  "benefit": "आपको क्या मिलेगा",
+  "whoCanApply": "कौन आवेदन कर सकता है?",
+  "whoCanApplyShort": "कौन आवेदन कर सकता है:",
+  "department": "विभाग",
+  "aboutTitle": "योजना के बारे में",
+  "howToApply": "कैसे आवेदन करें",
+  "applyStep1Title": "पात्रता जाँचें",
+  "applyStep1Desc": "शुरू करने से पहले ऊपर दी गई पात्रता ध्यान से पढ़ें।",
+  "applyStep2Title": "आधिकारिक पोर्टल से आवेदन करें",
+  "applyStep2Desc": "नीचे दिए गए आधिकारिक लिंक का उपयोग करें। ग्राम पंचायत कार्यालय भी आवेदन में मदद कर सकता है।",
+  "applyNote": "SmartGram केवल जानकारी के उद्देश्य से योजना विवरण दिखाता है। पात्रता की पुष्टि आवेदन करते समय संबंधित विभाग द्वारा की जाती है।",
+  "officialSource": "आधिकारिक स्रोत",
+  "officialSourceDesc": "यह योजना ऊपर सूचीबद्ध मंत्रालय द्वारा संचालित है। हमेशा आधिकारिक पोर्टल से ही आवेदन करें।",
+  "visitPortal": "आधिकारिक पोर्टल पर जाएँ",
+  "visitPortalAria": "{{name}} के आधिकारिक पोर्टल पर जाएँ",
+  "backToList": "सभी योजनाओं पर वापस जाएँ",
+  "share": "साझा करें",
+  "shareText": "{{name}} — SmartGram पर एक सरकारी योजना",
+  "linkCopied": "लिंक क्लिपबोर्ड पर कॉपी हुआ।",
+  "shareFailed": "अभी साझा नहीं किया जा सका।",
+  "notFoundTitle": "योजना नहीं मिली",
+  "notFoundDesc": "यह योजना मौजूद नहीं है या हटा दी गई होगी।",
+  "viewDetails": "विवरण देखें",
+}
+
+def merge(path, patch):
+    with io.open(path, encoding='utf-8') as f:
+        data = json.load(f)
+    data.setdefault('schemes', {}).update(patch)
+    with io.open(path, 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+
+merge('src/i18n/locales/en/translation.json', EN)
+merge('src/i18n/locales/hi/translation.json', HI)
+print('schemes i18n merged')

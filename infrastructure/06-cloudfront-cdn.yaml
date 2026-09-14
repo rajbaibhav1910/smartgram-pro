@@ -1,0 +1,177 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SmartGram Pro - 06 CDN: CloudFront Distribution, Origin Access Control (OAC), and S3 Bucket Policies'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'prod'
+    Description: 'Deployment environment identifier'
+
+  FrontendBucketName:
+    Type: String
+    Description: 'S3 Bucket Name for React Frontend SPA'
+
+  FrontendBucketArn:
+    Type: String
+    Description: 'S3 Bucket ARN for React Frontend SPA'
+
+  MediaBucketName:
+    Type: String
+    Description: 'S3 Bucket Name for Media Uploads'
+
+  MediaBucketArn:
+    Type: String
+    Description: 'S3 Bucket ARN for Media Uploads'
+
+  AlbDnsName:
+    Type: String
+    Description: 'DNS Name of the Application Load Balancer'
+
+Resources:
+  # ============================================================================
+  # CloudFront Origin Access Control (OAC) for Private S3 Access
+  # ============================================================================
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'smartgram-${EnvironmentName}-oac'
+        Description: 'Origin Access Control for SmartGram Pro S3 Buckets'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ============================================================================
+  # CloudFront CDN Distribution (Unified Frontend + API Gateway)
+  # ============================================================================
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub 'SmartGram Pro Unified CDN (${EnvironmentName})'
+        Enabled: true
+        HttpVersion: http2and3
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+
+        # Origins: 1) Frontend S3, 2) Media S3, 3) ALB Backend
+        Origins:
+          - Id: S3-Frontend
+            DomainName: !Sub '${FrontendBucketName}.s3.${AWS::Region}.amazonaws.com'
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+            S3OriginConfig: {}
+
+          - Id: S3-Media
+            DomainName: !Sub '${MediaBucketName}.s3.${AWS::Region}.amazonaws.com'
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+            S3OriginConfig: {}
+
+          - Id: ALB-Backend
+            DomainName: !Ref AlbDnsName
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 60
+              OriginKeepaliveTimeout: 5
+
+        # Default Behavior: React SPA Frontend (Cached at Edge)
+        DefaultCacheBehavior:
+          TargetOriginId: S3-Frontend
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized
+          Compress: true
+
+        # Custom Cache Behaviors:
+        CacheBehaviors:
+          # 1. API Route: No-cache pass-through to ALB with all headers & cookies forwarded
+          - PathPattern: '/api/*'
+            TargetOriginId: ALB-Backend
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachedMethods: [GET, HEAD]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # Managed-CachingDisabled
+            OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3 # Managed-AllViewerExceptHostHeader
+            Compress: true
+
+          # 2. Complaint Images Route: Fast edge-cached delivery from Media S3
+          - PathPattern: '/complaint-images/*'
+            TargetOriginId: S3-Media
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS]
+            CachedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # Managed-CachingOptimized
+            Compress: true
+
+        # Single-Page Application (SPA) Error Fallbacks for React Router client routes
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 10
+
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Application
+          Value: SmartGramPro
+
+  # ============================================================================
+  # S3 Bucket Policies Restricting Access Exclusively to CloudFront OAC
+  # ============================================================================
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucketName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipal
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucketArn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucketName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalForMedia
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${MediaBucketArn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+Outputs:
+  CloudFrontDistributionId:
+    Description: 'CloudFront Distribution ID'
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDistributionId'
+
+  CloudFrontDomainName:
+    Description: 'CloudFront Distribution Domain Name'
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDomainName'
+
+  ApplicationUrl:
+    Description: 'Production SmartGram Pro Public URL'
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
