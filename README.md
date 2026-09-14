@@ -1,470 +1,433 @@
-# SmartGram Pro – GUIDE PART 4
-## Sections 22–27: Testing, Troubleshooting, Viva Q&A, Resume, PPT, Future
+# 🏘️ SmartGram Pro — Digital Village Governance Platform
+
+A production-grade, **multi-tenant**, **cloud-native** digital governance platform built entirely on **AWS**, empowering rural Gram Panchayats to manage citizen complaints, publish notices, showcase government schemes, and visualize village assets on an interactive GIS map — all through a modern React web interface deployed via CI/CD.
+
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![Flask](https://img.shields.io/badge/Flask-3.x-lightgrey?logo=flask)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)
+![AWS](https://img.shields.io/badge/AWS-Cloud%20Native-FF9900?logo=amazonaws)
+![ECS Fargate](https://img.shields.io/badge/ECS-Fargate-FF9900?logo=amazonecs)
+![DynamoDB](https://img.shields.io/badge/DynamoDB-NoSQL-4053D6?logo=amazondynamodb)
+![CloudFormation](https://img.shields.io/badge/IaC-CloudFormation-FF4F8B)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
 
-# SECTION 22 — FINAL TESTING CHECKLIST
+## 📋 Table of Contents
 
-## Test 1: Register a Villager
-1. Open `http://YOUR-EC2-IP`
-2. Click Register → Fill all fields → Role: Villager → Submit
-3. ✅ Check DynamoDB → `SmartGramUsers` → should have new record
-
-## Test 2: Login
-1. Login with your username/password
-2. ✅ Should redirect to dashboard
-
-## Test 3: Submit Complaint with Image
-1. Click "Submit Complaint"
-2. Select Category: Road Damage
-3. Write description (min 20 chars)
-4. Upload a small JPG photo
-5. Submit
-6. ✅ Note the Complaint ID shown (e.g., `CMP-20240115-A1B2C3`)
-7. ✅ Check DynamoDB → `SmartGramComplaints` → new record with `status: Pending`
-8. ✅ Check S3 bucket → `complaint-images/` folder → your photo is there
-9. ✅ Check email inbox → SNS notification received
-
-## Test 4: Admin Login & Status Update
-1. Logout → Login as admin (username: admin, password: admin123)
-2. ✅ Admin dashboard shows analytics cards
-3. ✅ Chart shows complaint breakdown
-4. Find the complaint → Click edit icon
-5. Change status to "In Progress" → Add remarks → Update
-6. ✅ DynamoDB record updated
-7. ✅ Email notification sent
-
-## Test 5: Post a Notice
-1. In admin panel → Post Notice section
-2. Title: "Gram Sabha on 25 January"
-3. Category: Meeting → Content: some text → Submit
-4. ✅ Go to Notices page → notice appears
-
-## Test 6: Lambda Execution
-1. Lambda Console → `SmartGramPendingReminder` → Test
-2. ✅ Execution result shows 200
-3. ✅ Email received with pending complaint list
-4. ✅ CloudWatch → Logs → `/aws/lambda/SmartGramPendingReminder` → log entries visible
-
-## Test 7: Government Schemes Page
-1. Visit `/schemes`
-2. ✅ All 5 schemes display with Apply buttons
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [AWS Services Used](#-aws-services-used)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [CI/CD Pipeline](#-cicd-pipeline)
+- [Infrastructure as Code](#-infrastructure-as-code)
+- [Environment Variables](#-environment-variables)
+- [API Endpoints](#-api-endpoints)
+- [Author](#-author)
+- [License](#-license)
 
 ---
 
-# SECTION 23 — TROUBLESHOOTING
+## ✨ Features
 
-## Problem 1: Flask "ModuleNotFoundError"
-```
-ModuleNotFoundError: No module named 'flask'
-```
-**Fix:**
-```bash
-# Make sure venv is activated!
-source /home/ubuntu/smartgram/venv/bin/activate
-# Then run again
-```
+### 🏛️ Multi-Tenant Panchayat System
+| Feature | Description |
+|---------|-------------|
+| 🔐 **Role-Based Auth** | Three roles — **Villager**, **Panchayat Admin**, and **Super Admin** — with tenant-scoped data isolation |
+| 🏘️ **Panchayat Onboarding** | Super Admin can create new panchayats and assign local admins instantly |
+| 🔒 **Tenant Isolation** | Every complaint, notice, and map asset is scoped to its panchayat; cross-tenant access is denied and audited |
 
-## Problem 2: Security Group — Connection Timeout
-**Symptom:** Browser shows "This site can't be reached"
-**Fix:**
-1. EC2 → Security Groups → `SmartGram-SG`
-2. Inbound rules → Verify Port 80 and Port 5000 are open to `0.0.0.0/0`
-3. Also check EC2 instance is in "Running" state
+### 📝 Complaint Management
+| Feature | Description |
+|---------|-------------|
+| 📸 **File with Image Uploads** | Citizens submit complaints with category tags and image evidence (stored on S3, served via CloudFront CDN) |
+| 📊 **Real-Time Status Tracking** | Track complaint lifecycle: Pending → In Progress → Resolved |
+| 📧 **SNS Email Alerts** | Automatic email notifications on new complaints and status changes |
+| ⏰ **Automated Reminders** | AWS Lambda + EventBridge sends daily alerts for stale pending complaints |
 
-## Problem 3: S3 Upload Error — Access Denied
-```
-botocore.exceptions.ClientError: AccessDenied
-```
-**Fix:**
-1. Verify IAM Role `SmartGramEC2Role` is attached to EC2 instance
-2. EC2 Console → Your instance → IAM Role column → should show `SmartGramEC2Role`
-3. Verify role has `AmazonS3FullAccess`
-4. Verify bucket name in `config.py` matches exactly
+### 🗺️ Interactive GIS Map
+| Feature | Description |
+|---------|-------------|
+| 🌍 **MapLibre GL Integration** | Interactive village map with real GeoJSON features (Points, Lines, Polygons) |
+| 🏫 **Asset Management** | Track schools, hospitals, anganwadis, water tanks, hand pumps, street lights, roads, and more |
+| 🚧 **Project Tracking** | Visualize development projects with status (planned → approved → in progress → completed → verified) and progress bars |
+| 🗺️ **Ward Boundaries** | Draw village boundary and ward polygons directly on the map |
 
-## Problem 4: DynamoDB Region Mismatch
-```
-Could not connect to the endpoint URL: dynamodb.us-west-2.amazonaws.com
-```
-**Fix:**
-```python
-# In config.py — make sure this matches where you created your tables
-AWS_REGION = 'us-east-1'
-```
-
-## Problem 5: IAM Permission Denied on SNS
-```
-botocore.exceptions.ClientError: not authorized to perform: SNS:Publish
-```
-**Fix:**
-1. IAM → Roles → `SmartGramEC2Role` → Add permission → `AmazonSNSFullAccess`
-2. Or confirm your SNS Topic ARN is correct in config
-
-## Problem 6: Gunicorn Not Found
-```bash
-bash: gunicorn: command not found
-```
-**Fix:**
-```bash
-source venv/bin/activate   # Must activate first!
-pip install gunicorn
-gunicorn --bind 0.0.0.0:5000 app:app
-```
-
-## Problem 7: Nginx 502 Bad Gateway
-**Symptom:** Visit port 80, get 502 error
-**Fix:**
-```bash
-# Check if Flask/Gunicorn is running
-sudo systemctl status smartgram
-# If not running:
-sudo systemctl start smartgram
-# Check logs:
-sudo journalctl -u smartgram -n 50
-```
-
-## Problem 8: Images Not Displaying
-**Fix:** Check S3 bucket policy has public read allowed (Section 5)
-
-## Problem 9: Email Not Received from SNS
-**Fix:**
-1. Check spam/junk folder
-2. Confirm you clicked the confirmation link in the original subscription email
-3. SNS Console → Topic → Subscriptions → Status should be "Confirmed"
+### 📢 Additional Modules
+| Feature | Description |
+|---------|-------------|
+| 📋 **Notices Board** | Admin-posted notices with expiry dates, categories, and detail views |
+| 🏛️ **Schemes Directory** | Curated catalog of government schemes (PM Awas Yojana, PM Kisan, MGNREGA, etc.) with eligibility & application details |
+| 🌐 **Internationalization (i18n)** | Multi-language UI support via i18next |
+| 📱 **Responsive Design** | Mobile-first, Tailwind CSS powered responsive interface |
+| 📜 **Audit Logging** | Every sensitive action is recorded for accountability and transparency |
 
 ---
 
-# SECTION 24 — VIVA QUESTIONS & ANSWERS (30 Questions)
-
-**Q1. What is SmartGram Pro?**
-A cloud-based digital village governance platform built on AWS that enables villagers to submit and track complaints, view notices and government schemes, while admins manage everything through a dashboard.
-
-**Q2. Why did you use DynamoDB instead of MySQL?**
-DynamoDB is AWS's managed NoSQL database — no server to maintain, scales automatically, has a generous free tier (25GB), and works perfectly with boto3. For this project's schema (flexible complaint records), NoSQL is ideal.
-
-**Q3. What is an IAM Role and why is it important?**
-An IAM Role grants permissions to AWS services without using hardcoded credentials. Our EC2 instance uses `SmartGramEC2Role` to access DynamoDB, S3, and SNS securely.
-
-**Q4. What is the difference between IAM User and IAM Role?**
-IAM User = a person (has permanent credentials). IAM Role = a set of permissions assigned to a service/resource (uses temporary credentials automatically rotated by AWS).
-
-**Q5. Explain the S3 bucket policy you used.**
-We used a bucket policy with `s3:GetObject` permission for `Principal: "*"` — this makes all objects in the bucket publicly readable via URL, so complaint images can be displayed in the browser.
-
-**Q6. What is boto3?**
-boto3 is the official AWS SDK for Python. It lets Python code interact with AWS services like DynamoDB, S3, SNS, etc. using simple method calls.
-
-**Q7. What is SNS and how is it used here?**
-Amazon SNS (Simple Notification Service) is a pub/sub messaging service. We created a topic `SmartGramAlerts` with email subscriptions. When a complaint is filed or status updated, Flask publishes a message to SNS, which delivers it as email.
-
-**Q8. What is AWS Lambda?**
-Lambda is a serverless compute service. You upload code (our `pending_reminder.py`) and AWS runs it on demand. You pay only for execution time. No server management needed.
-
-**Q9. How does EventBridge trigger Lambda?**
-EventBridge is a scheduling/event bus service. We created a rule with cron expression `cron(30 3 * * ? *)` that fires daily at 3:30 UTC (9 AM IST) and invokes the Lambda function.
-
-**Q10. What is the cron expression for 9 AM IST daily?**
-`cron(30 3 * * ? *)` — because IST is UTC+5:30, so 9:00 AM IST = 3:30 AM UTC.
-
-**Q11. What does CloudWatch do in this project?**
-Monitors EC2 metrics (CPU, network), stores Lambda execution logs automatically, and can trigger alarms when thresholds are crossed.
-
-**Q12. What is Gunicorn and why use it instead of Flask's built-in server?**
-Gunicorn is a production-grade WSGI server. Flask's built-in server is single-threaded and not safe for production. Gunicorn handles multiple concurrent requests, restarts on crash, and integrates with Nginx.
-
-**Q13. What is Nginx and why put it in front of Flask?**
-Nginx is a high-performance web server/reverse proxy. It handles port 80, serves static files efficiently, buffers slow clients, and can later add SSL. It forwards dynamic requests to Gunicorn/Flask on port 5000.
-
-**Q14. What is a reverse proxy?**
-A reverse proxy sits between the client and backend server. Nginx receives the request on port 80 and forwards it to Flask on port 5000, then sends Flask's response back to the client.
-
-**Q15. What is `put_item` in DynamoDB?**
-Creates or completely replaces an item in a DynamoDB table. If the partition key exists, the item is overwritten.
-
-**Q16. What is `update_item` in DynamoDB?**
-Updates specific attributes of an existing item without replacing the entire item. Uses UpdateExpression to define what changes.
-
-**Q17. Why is `status` wrapped in ExpressionAttributeNames?**
-`status` is a reserved word in DynamoDB. Using `#st` as a placeholder in ExpressionAttributeNames avoids the reserved word conflict.
-
-**Q18. What is a partition key in DynamoDB?**
-The primary key that uniquely identifies each item. DynamoDB uses it to determine which partition (server) stores the item. All queries must include it.
-
-**Q19. What is the difference between scan and query in DynamoDB?**
-`scan` reads every item in the table (expensive). `query` uses the partition key to retrieve specific items efficiently. For production, use query with GSI (Global Secondary Index).
-
-**Q20. How does session management work in Flask?**
-Flask stores session data in a signed cookie on the client side. The `SECRET_KEY` is used to cryptographically sign it, preventing tampering. We store `user_id`, `username`, `role` in session.
-
-**Q21. What is t2.micro and why use it?**
-t2.micro is an EC2 instance type with 1 vCPU and 1 GB RAM. It's part of the AWS Free Tier — 750 hours/month free for 12 months. Sufficient for this project's load.
-
-**Q22. What is a Security Group in AWS?**
-A virtual firewall for EC2 instances. Controls inbound and outbound traffic by port, protocol, and source IP. We opened ports 22 (SSH), 80 (HTTP), and 5000 (Flask testing).
-
-**Q23. What is the free tier for DynamoDB?**
-25 GB storage, 25 Read Capacity Units, 25 Write Capacity Units per month — permanently free (not just 12 months).
-
-**Q24. What is On-Demand vs Provisioned capacity in DynamoDB?**
-On-Demand: pay per request, scales automatically — good for unpredictable workloads. Provisioned: you specify read/write capacity in advance — cheaper for predictable workloads.
-
-**Q25. What is `secure_filename` from Werkzeug?**
-Sanitizes uploaded filenames to remove path traversal attacks and special characters. Example: `../../etc/passwd` becomes `etc_passwd`.
-
-**Q26. How is the complaint image URL constructed?**
-After uploading to S3 with key `complaint-images/filename.jpg`, the URL is:
-`https://BUCKET-NAME.s3.amazonaws.com/complaint-images/filename.jpg`
-
-**Q27. What is the MAX_CONTENT_LENGTH setting?**
-Limits the maximum size of uploaded files in Flask. Set to 1MB (`1 * 1024 * 1024` bytes). Flask automatically returns HTTP 413 if exceeded.
-
-**Q28. What AWS region did you use and why?**
-`us-east-1` (N. Virginia). It has the most AWS services available, best free tier coverage, and lowest latency to most global locations.
-
-**Q29. How would you make this production-ready?**
-1. Use HTTPS with SSL certificate (AWS Certificate Manager + Route53)
-2. Replace SHA-256 with bcrypt for password hashing
-3. Use DynamoDB GSI for efficient queries instead of scan
-4. Add CloudFront CDN for static files
-5. Use environment variables for all secrets
-6. Enable DynamoDB Point-in-Time Recovery (PITR)
-
-**Q30. What is the overall architecture flow?**
-User → Route53 (DNS) → Nginx (port 80) → Gunicorn/Flask (port 5000) → DynamoDB (data) + S3 (images) + SNS (alerts). EventBridge → Lambda daily → DynamoDB scan → SNS email. CloudWatch monitors everything.
-
----
-
-# SECTION 25 — RESUME DESCRIPTION (ATS-Friendly)
+## 🏗️ Architecture
 
 ```
-SmartGram Pro – Cloud-Based Digital Village Governance Platform
-Tech Stack: Python Flask | AWS EC2 | DynamoDB | S3 | SNS | Lambda | EventBridge | CloudWatch | Nginx
-
-• Designed and deployed a full-stack cloud web application on AWS EC2 (Ubuntu t2.micro) 
-  enabling rural citizens to submit complaints, track resolution status, and access government services
-
-• Engineered a serverless automation pipeline using AWS Lambda and EventBridge (cron scheduling) 
-  that sends daily email summaries of pending complaints to administrators via Amazon SNS
-
-• Implemented RESTful Flask backend with DynamoDB CRUD operations (put_item, update_item, scan) 
-  managing 3 tables: Users, Complaints, Notices with on-demand capacity mode
-
-• Built S3-integrated complaint image upload system with public bucket policy, 
-  processing file validation, secure naming, and direct URL generation for browser display
-
-• Configured production deployment with Gunicorn WSGI server and Nginx reverse proxy 
-  on Ubuntu EC2, with systemd service for auto-restart on failure
-
-• Applied AWS IAM best practices using EC2 Instance Roles (no hardcoded credentials) 
-  and least-privilege Lambda execution roles
-
-• Set up CloudWatch monitoring with EC2 metrics, Lambda logs, and billing alarms 
-  for proactive infrastructure management within AWS Free Tier constraints
+┌────────────────┐
+│   Browser /    │
+│   Mobile       │
+└───────┬────────┘
+        │  HTTPS
+        ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                           AWS Cloud (ap-south-1)                        │
+│                                                                          │
+│  ┌──────────────┐     ┌──────────────────┐                               │
+│  │  CloudFront  │────►│  S3 Bucket       │  ← React SPA (Static Assets) │
+│  │  CDN         │     │  (Frontend)      │                               │
+│  └──────┬───────┘     └──────────────────┘                               │
+│         │ /api/*                                                         │
+│         ▼                                                                │
+│  ┌──────────────┐     ┌──────────────────┐                               │
+│  │  Application │     │  ECS Fargate     │                               │
+│  │  Load        │────►│  (Flask API      │                               │
+│  │  Balancer    │     │   Container)     │                               │
+│  └──────────────┘     └────────┬─────────┘                               │
+│                                │                                         │
+│              ┌─────────────────┼─────────────────┐                       │
+│              ▼                 ▼                  ▼                       │
+│  ┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐              │
+│  │  DynamoDB        │ │  S3 Bucket   │ │  SNS Topic       │              │
+│  │  ─ Users         │ │  (Media /    │ │  (Email Alerts)  │              │
+│  │  ─ Complaints    │ │   Images)    │ │                  │              │
+│  │  ─ Notices       │ └──────────────┘ └──────────────────┘              │
+│  │  ─ Panchayats    │                                                    │
+│  │  ─ MapAssets     │  ┌──────────────┐   ┌──────────────┐               │
+│  │  ─ AuditLog      │  │ EventBridge  │──►│  Lambda      │               │
+│  └──────────────────┘  │ (Daily Cron) │   │  (Pending    │               │
+│                        └──────────────┘   │   Reminder)  │               │
+│                                           └──────────────┘               │
+│  ┌──────────────────┐  ┌──────────────┐                                  │
+│  │  Secrets Manager │  │  ECR         │  ← Docker Image Registry         │
+│  │  (App Secrets)   │  │  (Backend)   │                                  │
+│  └──────────────────┘  └──────────────┘                                  │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────────┐     │
+│  │  VPC: 10.0.0.0/16                                               │     │
+│  │  ├─ Public Subnets (2 AZs)  — ALB, NAT Gateway                  │     │
+│  │  └─ Private Subnets (2 AZs) — ECS Tasks                         │     │
+│  └──────────────────────────────────────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# SECTION 26 — PPT PRESENTATION CONTENT
+## ☁️ AWS Services Used
 
-## Slide 1 — Title Slide
-**SmartGram Pro**
-Cloud-Based Digital Village Governance Platform
-[Your Name] | [Date] | AWS Academy Project
-
-## Slide 2 — Problem Statement
-- 60%+ of India's population lives in villages
-- Complaints lost in paperwork — no tracking
-- Notices on walls — most people miss them
-- No accountability for panchayat work
-- No analytics for admin decision-making
-**Result: Citizens frustrated, governance inefficient**
-
-## Slide 3 — Solution
-SmartGram Pro digitizes village governance:
-✓ Online complaint submission with photo evidence
-✓ Real-time status tracking with unique IDs
-✓ Email alerts at every step
-✓ Digital notice board accessible from phone
-✓ Government schemes directory
-✓ Admin analytics dashboard
-
-## Slide 4 — AWS Architecture Diagram
-[Paste the text architecture from Section 2]
-Key: EC2 → Flask → DynamoDB + S3 + SNS
-Lambda ← EventBridge (daily schedule)
-CloudWatch monitoring all components
-
-## Slide 5 — AWS Services Used
 | Service | Purpose |
-|---|---|
-| EC2 t2.micro | Hosts Flask web application |
-| DynamoDB | Stores users, complaints, notices |
-| S3 | Stores complaint photos |
-| IAM | Secure access control |
-| SNS | Email notifications |
-| Lambda | Serverless daily automation |
-| EventBridge | Cron scheduler for Lambda |
-| CloudWatch | Monitoring & logging |
-
-## Slide 6 — Tech Stack
-- **Frontend:** HTML5, CSS3, Bootstrap 5, JavaScript
-- **Backend:** Python 3.11, Flask 3.x, Gunicorn
-- **Database:** Amazon DynamoDB (NoSQL)
-- **Storage:** Amazon S3
-- **Web Server:** Nginx reverse proxy
-- **AWS SDK:** boto3
-
-## Slide 7 — Key Features Demo
-1. Villager registers → logs in
-2. Submits complaint with photo
-3. Gets email confirmation via SNS
-4. Admin views analytics dashboard
-5. Admin updates status → villager notified
-6. Lambda runs daily → pending reminder
-
-## Slide 8 — DynamoDB Schema
-**SmartGramUsers:** user_id (PK), username, email, role, village
-**SmartGramComplaints:** complaint_id (PK), user_id, category, status, image_url
-**SmartGramNotices:** notice_id (PK), title, content, category, posted_by
-
-## Slide 9 — Cost Analysis (Free Tier)
-| Service | Free Tier | Our Usage |
-|---|---|---|
-| EC2 | 750 hrs/month | ~720 hrs |
-| DynamoDB | 25 GB storage | < 1 MB |
-| S3 | 5 GB storage | < 100 MB |
-| Lambda | 1M invocations | ~30/month |
-| SNS | 1000 emails | ~50/month |
-**Total Monthly Cost: $0 (Free Tier)**
-
-## Slide 10 — Security Best Practices
-- IAM Roles (no hardcoded credentials)
-- Password hashing with SHA-256
-- Flask session signing with SECRET_KEY
-- S3 public read only (no write)
-- Security Groups restrict SSH to admin IP
-- CloudWatch billing alarm at $1
-
-## Slide 11 — Future Enhancements
-- AI complaint auto-classification (Amazon Comprehend)
-- GIS heatmaps (Amazon Location Service)
-- Mobile app (React Native + AWS Amplify)
-- IoT sensor integration (AWS IoT Core)
-- Hindi/regional language support (Amazon Translate)
-- WhatsApp alerts (Twilio + Lambda)
-
-## Slide 12 — Conclusion
-- Built complete cloud application in 1 day
-- Used 8 AWS services synergistically
-- Zero cost deployment on AWS Free Tier
-- Production-ready with Nginx + Gunicorn
-- Scalable architecture — handles villages to district level
-- Resume-worthy project demonstrating full-stack + cloud skills
+|---------|---------|
+| **VPC** | Isolated network with public/private subnets across 2 Availability Zones |
+| **ECS Fargate** | Serverless container orchestration for the Flask API (no EC2 management) |
+| **ECR** | Private Docker container registry for backend images |
+| **ALB** | Application Load Balancer for traffic routing and health checks |
+| **DynamoDB** | Fully managed NoSQL database (6 tables: Users, Complaints, Notices, Panchayats, MapAssets, AuditLog) |
+| **S3** | Object storage for complaint images (media bucket) and React static assets (frontend bucket) |
+| **CloudFront** | Global CDN for low-latency frontend delivery and S3 media serving |
+| **SNS** | Simple Notification Service for real-time email alerts |
+| **Lambda** | Serverless function for automated daily pending complaint reminders |
+| **EventBridge** | Scheduled cron rule triggering the Lambda reminder daily |
+| **Secrets Manager** | Secure storage for application secrets (Flask secret key, etc.) |
+| **IAM** | Fine-grained roles for ECS tasks, Lambda execution, and CI/CD |
+| **CloudFormation** | Infrastructure as Code — entire stack defined in YAML templates |
 
 ---
 
-# SECTION 27 — FUTURE ENHANCEMENTS
+## 🛠️ Tech Stack
 
-## 1. AI Complaint Classification (Amazon Comprehend)
-```python
-comprehend = boto3.client('comprehend', region_name='us-east-1')
-result = comprehend.detect_sentiment(Text=description, LanguageCode='en')
-# Auto-tag urgent complaints based on sentiment score
-# Route high-priority complaints to senior officials
-```
-
-## 2. GIS Heatmaps (Amazon Location Service)
-- Map complaints by GPS coordinates
-- Admin sees problem hotspots on interactive map
-- Identify areas with recurring infrastructure issues
-- Integrate Leaflet.js or Google Maps API
-
-## 3. Mobile App (React Native + AWS Amplify)
-- Amplify Auth (Cognito) for mobile login
-- Amplify Storage (S3) for photo capture and upload
-- Push notifications via Amazon Pinpoint
-- Offline complaint drafting with sync
-
-## 4. IoT Sensor Integration (AWS IoT Core)
-- Water level sensors → auto-create water shortage complaints
-- Street light sensors → detect failures automatically
-- Soil moisture sensors for agriculture alerts
-- Data stored in DynamoDB via IoT Rules
-
-## 5. Multilingual Support (Amazon Translate)
-```python
-translate = boto3.client('translate', region_name='us-east-1')
-result = translate.translate_text(
-    Text=complaint_description,
-    SourceLanguageCode='hi',  # Hindi input
-    TargetLanguageCode='en'   # Stored in English
-)
-```
-- Support Hindi, Marathi, Tamil, Telugu inputs
-- Auto-translate admin responses back to local language
-
-## 6. Voice Complaint Submission (Amazon Transcribe)
-- Villagers record audio complaint on phone
-- Transcribe converts speech to text automatically
-- Removes literacy barrier
-
-## 7. WhatsApp Alerts
-- Lambda + Twilio API sends WhatsApp messages
-- More reliable delivery than email in rural areas
-
-## 8. Blockchain Audit Trail (Hyperledger on AWS)
-- Immutable record of all complaint status changes
-- Prevents tampering by corrupt officials
-- Full accountability chain
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 19, TypeScript, Vite 8, Tailwind CSS 3, React Router 7, TanStack React Query, Framer Motion, Recharts, MapLibre GL, Zod, i18next |
+| **Backend** | Python 3.11, Flask 3, Flask-CORS, Gunicorn (gthread workers) |
+| **Database** | Amazon DynamoDB (6 tables with GSIs) |
+| **Storage** | Amazon S3 (media + frontend buckets) |
+| **Messaging** | Amazon SNS |
+| **Automation** | AWS Lambda + Amazon EventBridge |
+| **Containerization** | Docker (multi-stage, non-root, with health checks) |
+| **Orchestration** | AWS ECS Fargate |
+| **CDN** | Amazon CloudFront |
+| **IaC** | AWS CloudFormation (modular + unified master stack) |
+| **CI/CD** | GitHub Actions (build → deploy → invalidate cache) |
 
 ---
 
-# COMPLETE FILE CHECKLIST
-
-Verify all these files exist in your project:
+## 📁 Project Structure
 
 ```
 SmartGram-Pro/
-├── app.py                         ✅ (Guide Part 2)
-├── config.py                      ✅ (created)
-├── requirements.txt               ✅ (created)
-├── GUIDE_PART1.md                 ✅ Sections 1-8
-├── GUIDE_PART2.md                 ✅ Sections 9-16
-├── GUIDE_PART3.md                 ✅ Sections 17-21
-├── GUIDE_PART4.md                 ✅ Sections 22-27
-├── static/
-│   ├── css/style.css              ✅ (created)
-│   └── js/main.js                 ✅ (created)
-├── templates/
-│   ├── base.html                  ✅ (created)
-│   ├── index.html                 ✅ (created)
-│   ├── login.html                 ✅ (created)
-│   ├── register.html              ✅ (created)
-│   ├── complaint.html             ✅ (created)
-│   ├── dashboard.html             ✅ (created)
-│   ├── admin.html                 ✅ (created)
-│   ├── notices.html               ✅ (created)
-│   └── schemes.html               ✅ (created)
-└── lambda/
-    └── pending_reminder.py        ✅ (created)
+├── .github/
+│   └── workflows/
+│       └── deploy.yml               # GitHub Actions CI/CD pipeline
+│
+├── frontend/                         # React + TypeScript SPA
+│   ├── src/
+│   │   ├── pages/                    # Route-level page components
+│   │   │   ├── LandingPage.tsx       #   Public landing page
+│   │   │   ├── LoginPage.tsx         #   User login
+│   │   │   ├── RegisterPage.tsx      #   Citizen registration (with panchayat selector)
+│   │   │   ├── DashboardPage.tsx     #   Citizen dashboard
+│   │   │   ├── ComplaintsPage.tsx    #   Complaint listing
+│   │   │   ├── ComplaintSubmitPage.tsx #  Submit a new complaint
+│   │   │   ├── ComplaintDetailPage.tsx # Complaint detail & status timeline
+│   │   │   ├── AdminDashboardPage.tsx #  Panchayat admin panel (complaints, notices, analytics)
+│   │   │   ├── SuperAdminPage.tsx    #   Platform-wide super admin dashboard
+│   │   │   ├── MapPage.tsx           #   Interactive GIS village map
+│   │   │   ├── NoticesPage.tsx       #   Notices board
+│   │   │   ├── SchemesPage.tsx       #   Government schemes directory
+│   │   │   └── ProfilePage.tsx       #   User profile
+│   │   ├── components/               # Reusable UI components
+│   │   │   ├── admin/                #   Admin-specific components
+│   │   │   ├── layout/               #   Navbar, sidebar, footer
+│   │   │   ├── notices/              #   Notice cards & forms
+│   │   │   ├── schemes/              #   Scheme cards & details
+│   │   │   └── ui/                   #   Buttons, modals, inputs, etc.
+│   │   ├── services/                 # API client functions
+│   │   ├── hooks/                    # Custom React hooks
+│   │   ├── i18n/                     # Internationalization config & translations
+│   │   ├── types/                    # TypeScript type definitions
+│   │   ├── lib/                      # Utility functions
+│   │   ├── data/                     # Static scheme data
+│   │   ├── layouts/                  # Layout wrappers
+│   │   ├── App.tsx                   # Root component with routing
+│   │   └── main.tsx                  # Entry point
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   └── vite.config.ts
+│
+├── infrastructure/                   # AWS CloudFormation templates
+│   ├── master-stack.yaml             # 🏗️ Unified master stack (all resources)
+│   ├── 01-vpc-networking.yaml        # VPC, subnets, IGW, NAT, route tables
+│   ├── 02-security-iam.yaml         # IAM roles, policies, security groups
+│   ├── 03-database-storage.yaml     # DynamoDB tables, S3 buckets, ECR, Secrets Manager
+│   ├── 04-ecs-cluster-alb.yaml      # ECS cluster, task def, service, ALB, target groups
+│   ├── 05-lambda-eventbridge.yaml   # Lambda function, EventBridge cron rule
+│   └── 06-cloudfront-cdn.yaml       # CloudFront distribution, OAC, cache policies
+│
+├── lambda/
+│   └── pending_reminder.py           # Daily scan for stale pending complaints → SNS alert
+│
+├── scripts/
+│   ├── deploy.sh                     # Linux deployment script
+│   ├── deploy.ps1                    # Windows PowerShell deployment script
+│   ├── setup_local_tables.py         # Create DynamoDB tables locally (for dev)
+│   ├── migrate_to_multitenant.py     # Migration script for multi-tenancy
+│   └── qa_*.py / patch_*.py          # QA testing & patching scripts
+│
+├── data/
+│   └── villages_index.json           # Pre-indexed village directory (~6L+ villages)
+│
+├── app.py                            # Flask REST API (all backend routes)
+├── config.py                         # Environment-based configuration (+ Secrets Manager)
+├── create_admin.py                   # Seed super admin user in DynamoDB
+├── Dockerfile                        # Production container (Python 3.11-slim, Gunicorn)
+├── requirements.txt                  # Python dependencies
+├── setup.sh                          # EC2/VM quick-start script
+├── smartgram.service                 # systemd service file (legacy EC2 deploy)
+├── smartgram.nginx.conf              # Nginx reverse proxy config (legacy EC2 deploy)
+└── GUIDE_PART1-4.md                  # Step-by-step deployment guides
 ```
 
-## DEPLOYMENT ORDER (Do in this exact order)
-1. Create DynamoDB tables (Section 4)
-2. Create S3 bucket + policy (Section 5)
-3. Create IAM roles (Section 6)
-4. Launch EC2 + attach role (Section 7)
-5. Connect to EC2 (Section 8)
-6. Install software (Section 9)
-7. Upload project files to EC2
-8. Install pip packages
-9. Create admin user (Section 20)
-10. Run with Gunicorn (Section 20)
-11. Configure Nginx (Section 21)
-12. Create SNS topic + subscribe email (Section 16)
-13. Update config.py with real ARN/bucket name
-14. Create Lambda function (Section 17)
-15. Create EventBridge rule (Section 18)
-16. Test everything (Section 22)
-17. Set up CloudWatch alarm (Section 19)
-🎉 PROJECT COMPLETE!
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **AWS Account** with appropriate permissions
+- **Python 3.11+** and **Node.js 20+** installed locally
+- **Docker** (for building container images)
+- **AWS CLI v2** configured with credentials
+
+### Local Development
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/rajbaibhav1910/smartgram-pro.git
+cd smartgram-pro
+
+# 2. Backend setup
+python -m venv venv
+source venv/bin/activate        # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# 3. Set environment variables
+export AWS_REGION="ap-south-1"
+export SECRET_KEY="your-dev-secret-key"
+export S3_BUCKET="your-s3-bucket-name"
+export SNS_TOPIC_ARN="arn:aws:sns:ap-south-1:ACCOUNT_ID:SmartGramAlerts"
+
+# 4. Create local DynamoDB tables (requires DynamoDB Local or AWS credentials)
+python scripts/setup_local_tables.py
+
+# 5. Seed the admin user
+python create_admin.py
+
+# 6. Frontend setup
+cd frontend
+npm install
+
+# 7. Run both backend and frontend concurrently
+npm run dev:all
+```
+
+The frontend dev server runs on `http://localhost:5173` and proxies API calls to the Flask backend on port `5000`.
+
+### Docker (Production Build)
+
+```bash
+# Build the production container
+docker build -t smartgram-pro:latest .
+
+# Run locally
+docker run -p 5000:5000 \
+  -e AWS_REGION=ap-south-1 \
+  -e SECRET_KEY=your-secret-key \
+  -e S3_BUCKET=your-bucket \
+  smartgram-pro:latest
+```
+
+---
+
+## 🔄 CI/CD Pipeline
+
+The project uses **GitHub Actions** for fully automated build and deployment. The pipeline triggers on every push to `main` or via manual dispatch.
+
+### Pipeline Stages
+
+```
+Checkout → Setup Node 20 → Setup Python 3.11
+    → Install & Validate Backend
+    → Build React Frontend (npm ci → npm run build)
+    → Configure AWS Credentials (from GitHub Secrets)
+    → Deploy CloudFormation Master Stack
+    → Build & Push Docker Image → Amazon ECR
+    → Sync React Static Assets → S3 Frontend Bucket
+    → Force New ECS Fargate Deployment
+    → Invalidate CloudFront CDN Cache
+```
+
+### Required GitHub Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `AWS_ACCESS_KEY_ID` | IAM access key with deployment permissions |
+| `AWS_SECRET_ACCESS_KEY` | Corresponding IAM secret key |
+
+---
+
+## 🏗️ Infrastructure as Code
+
+All AWS resources are defined in **CloudFormation YAML templates** under `infrastructure/`.
+
+### Master Stack Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `EnvironmentName` | `prod` | Environment identifier (used in all resource names) |
+| `DeployNatGateway` | `false` | Enable NAT Gateway (set `true` for production) |
+| `EnableCloudFront` | `false` | Enable CloudFront CDN (requires verified AWS account) |
+| `AdminAlertEmail` | _(empty)_ | Email address for SNS complaint alert subscriptions |
+
+### Deploy the Stack
+
+```bash
+aws cloudformation deploy \
+  --stack-name smartgram-prod \
+  --template-file infrastructure/master-stack.yaml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides EnvironmentName=prod \
+  --region ap-south-1
+```
+
+---
+
+## 🔑 Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `SECRET_KEY` | Flask session secret key | _(insecure default)_ | Yes |
+| `AWS_REGION` | AWS deployment region | `ap-south-1` | No |
+| `S3_BUCKET` | S3 bucket for complaint image uploads | `smartgram-media-bucket` | Yes |
+| `SNS_TOPIC_ARN` | SNS topic ARN for email alerts | _(empty)_ | No |
+| `CDN_DOMAIN` | CloudFront domain for media URLs | _(empty)_ | No |
+| `SECRET_NAME` | AWS Secrets Manager secret ID | _(empty)_ | No |
+| `USERS_TABLE` | DynamoDB Users table name | `SmartGramUsers` | No |
+| `COMPLAINTS_TABLE` | DynamoDB Complaints table name | `SmartGramComplaints` | No |
+| `NOTICES_TABLE` | DynamoDB Notices table name | `SmartGramNotices` | No |
+| `PANCHAYATS_TABLE` | DynamoDB Panchayats table name | `SmartGramPanchayats` | No |
+| `MAP_ASSETS_TABLE` | DynamoDB Map Assets table name | `SmartGramMapAssets` | No |
+| `AUDIT_LOG_TABLE` | DynamoDB Audit Log table name | `SmartGramAuditLog` | No |
+
+---
+
+## 📡 API Endpoints
+
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/register` | Register a new citizen (with panchayat assignment) |
+| `POST` | `/api/auth/login` | Login with username & password |
+| `POST` | `/api/auth/logout` | Logout (clear session) |
+| `GET`  | `/api/auth/me` | Get current authenticated user profile |
+
+### Complaints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/complaints` | List complaints (tenant-scoped) |
+| `POST` | `/api/complaints` | Submit a new complaint (with optional image) |
+| `GET`  | `/api/complaints/:id` | Get complaint details |
+| `PUT`  | `/api/complaints/:id` | Update complaint status (admin) |
+
+### Notices
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/notices` | List notices (tenant-scoped) |
+| `POST` | `/api/notices` | Create a notice (admin) |
+| `GET`  | `/api/notices/:id` | Get notice details |
+
+### GIS Map
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/map/features` | Get all map features (GeoJSON FeatureCollection) |
+| `POST` | `/api/map/features` | Add a map feature (admin) |
+| `PUT`  | `/api/map/features/:id` | Update a map feature (admin) |
+| `DELETE`| `/api/map/features/:id` | Delete a map feature (admin) |
+
+### Super Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/super/overview` | Platform-wide statistics |
+| `GET`  | `/api/super/panchayats` | List all panchayats |
+| `POST` | `/api/super/panchayats` | Create a new panchayat (with optional admin) |
+| `PUT`  | `/api/super/panchayats/:id` | Update/suspend a panchayat |
+| `GET`  | `/api/super/audit` | View audit log |
+
+### Utility
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/api/health` | Health check (for ALB/ECS) |
+| `GET`  | `/api/stats` | Public aggregate complaint statistics |
+| `GET`  | `/api/villages?search=` | Search village directory (autocomplete) |
+| `GET`  | `/api/panchayats` | List active panchayats (public, for registration) |
+
+---
+
+## 👤 Author
+
+**Raj Baibhav**
+- GitHub: [@rajbaibhav1910](https://github.com/rajbaibhav1910)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
